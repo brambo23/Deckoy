@@ -24,7 +24,7 @@ python -m PyInstaller --noconfirm --clean --onedir --windowed `
     --name Deckoy `
     --icon assets\deckoy.ico `
     --collect-submodules zeroconf `
-    --exclude-module tkinter `
+    --exclude-module tkinter --exclude-module numpy `
     --exclude-module PySide6.QtWebEngineCore --exclude-module PySide6.QtWebEngineWidgets `
     --exclude-module PySide6.Qt3DCore --exclude-module PySide6.QtQuick --exclude-module PySide6.QtQml `
     run_deckoy.py
@@ -34,7 +34,12 @@ if ($LASTEXITCODE -ne 0) { throw 'PyInstaller failed.' }
 for ($i = 1; $i -le 6; $i++) {
     try {
         if (Test-Path $zip) { Remove-Item $zip -Force }
-        Compress-Archive -Path dist\Deckoy -DestinationPath $zip -ErrorAction Stop
+        # Python's zipfile writes a plain standard zip (Compress-Archive's output was rejected by GitHub's release uploader)
+        Push-Location dist
+        python -m zipfile -c (Split-Path $zip -Leaf) Deckoy
+        $zipExit = $LASTEXITCODE
+        Pop-Location
+        if ($zipExit -ne 0) { throw 'Zipping failed.' }
         break
     } catch {
         if ($i -eq 6) { throw }
